@@ -1,6 +1,6 @@
 from unittest import mock
 from TableauApi.TableauApi import TableauApi
-
+import requests
 # Tests for batch updating
 
 
@@ -67,3 +67,25 @@ def test_batch_update(mocker):
             payload
           )
         ]
+
+
+def test_update_in_tableau_api(mocker):
+    updater = TableauApi(
+            'fakeuser',
+            'fakepass',
+            serverUrl='server_url',
+            apiVersion='666'
+            )
+    api_updater_mock = mocker.patch.object(requests, 'put')
+    expected_headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    payload = {'key': 'value'}
+    updater.update_in_tableau_api('example.com', payload)
+
+    assert api_updater_mock.call_args == mock.call(
+        'example.com',
+        headers=expected_headers,
+        json=payload
+    )
