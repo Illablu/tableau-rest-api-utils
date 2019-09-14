@@ -95,7 +95,8 @@ class TableauApi:
 
         if self.token is not None:
             headers['X-Tableau-Auth'] = self.token
-            return headers
+
+        return headers
 
     def login(self):
         """TODO: some class/method description"""
