@@ -1,6 +1,0 @@
-import requests
-import os
-from TableauApi import TableauApi
-
-# with TableauApi() as api:
-#	api.batch_update("guybrush","threepwood")
