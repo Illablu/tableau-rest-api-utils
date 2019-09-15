@@ -1,26 +1,25 @@
 from unittest import mock
 from TableauApi.TableauApi import TableauApi
 import requests
+
 # Tests for batch updating
 
 
+class MockedResponse():
+    def __init__(self, response):
+        self.response = response
+
+    def call(self):
+        r = requests.Response()
+        r.status_code = 200
+
+        def json_func():
+            return self.response
+        r.json = json_func
+        return r
+
+
 def test_batch_update(mocker):
-    def assign_public_datasources():
-        expected_datasource = {
-          'datasource_id': '1',
-          'datasource_name': 'source name',
-          'connection_id': '1'
-        }
-        updater.datasources.append(expected_datasource)
-
-    def assign_project_datasources():
-        expected_datasource = {
-         'datasource_id': '2',
-         'datasource_name': 'source name',
-         'connection_id': '2'
-        }
-        updater.datasources.append(expected_datasource)
-
     mocker.patch.object(TableauApi, 'login')
     mocker.patch.object(TableauApi, 'logout')
 
@@ -33,12 +32,20 @@ def test_batch_update(mocker):
         mocker.patch.object(
             updater,
             'get_public_datasources',
-            side_effect=assign_public_datasources
+            return_value=[{
+                'datasource_id': '1',
+                'datasource_name': 'source name',
+                'connection_id': '1'
+            }]
         )
         mocker.patch.object(
             updater,
             'get_project_datasources',
-            side_effect=assign_project_datasources
+            return_value=[{
+                'datasource_id': '2',
+                'datasource_name': 'source name',
+                'connection_id': '2'
+            }]
         )
         api_updater_mock = mocker.patch.object(
             updater,
@@ -73,8 +80,6 @@ def test_update_in_tableau_api(mocker):
     updater = TableauApi(
             'fakeuser',
             'fakepass',
-            serverUrl='server_url',
-            apiVersion='666'
             )
     api_updater_mock = mocker.patch.object(requests, 'put')
     expected_headers = {
@@ -89,3 +94,103 @@ def test_update_in_tableau_api(mocker):
         headers=expected_headers,
         json=payload
     )
+
+
+def test_get_public_datasources(mocker):
+    updater = TableauApi(
+            'fakeuser',
+            'fakepass',
+            serverUrl='server_url',
+            apiVersion='666'
+            )
+    updater.site = 'content_url'
+
+    def datasources_response():
+        return MockedResponse({
+                'datasources': {
+                    'datasource': [{
+                        'id': 1,
+                        'name': 'source_name',
+                        'contentUrl': 'datasource_content_url'
+                    }]
+                }
+            }).call()
+
+    def connections_response():
+        return MockedResponse({
+                'connections': {
+                    'connection': [{
+                        'id': 1, 'type': 'connection_type',
+                        'serverAddress': 'connection_server_address',
+                        'serverPort': 'connection_server_port',
+                        'userName': 'connection_username'
+                    }]
+                }
+            }).call()
+
+    mocker.patch.object(requests, 'get', side_effect=[
+        datasources_response(), connections_response()
+    ])
+
+    assert updater.get_public_datasources() == [{
+                    'datasource_id': 1,
+                    'datasource_name': 'source_name',
+                    'datasource_content_url': 'datasource_content_url',
+                    'connection_id': 1,
+                    'connection_type': 'connection_type',
+                    'connection_server_address': 'connection_server_address',
+                    'connection_server_port': 'connection_server_port',
+                    'connection_username': 'connection_username'
+                }]
+
+
+def test_get_project_datasources(mocker):
+    updater = TableauApi(
+            'fakeuser',
+            'fakepass',
+            serverUrl='server_url',
+            apiVersion='666'
+            )
+    updater.site = 'content_url'
+
+    def workbooks_response():
+        return MockedResponse({
+                'workbooks': {
+                    'workbook': [{
+                        'id': 1,
+                        'name': 'source_name',
+                        'contentUrl': 'datasource_content_url'
+                    }]
+                }
+            }).call()
+
+    def connections_response():
+        return MockedResponse({
+                'connections': {
+                    'connection': [{
+                        'id': 1, 'type': 'connection_type',
+                        'serverAddress': 'connection_server_address',
+                        'serverPort': 'connection_server_port',
+                        'userName': 'connection_username',
+                        'datasource': {
+                            "id": 11,
+                            "name": "connection_datasource_name"
+                        }
+                    }]
+                }
+            }).call()
+
+    mocker.patch.object(requests, 'get', side_effect=[
+        workbooks_response(), connections_response()
+    ])
+
+    assert updater.get_project_datasources() == [{
+                    'datasource_id': 11,
+                    'datasource_name': 'connection_datasource_name',
+                    'datasource_content_url': 'datasource_content_url',
+                    'connection_id': 1,
+                    'connection_type': 'connection_type',
+                    'connection_server_address': 'connection_server_address',
+                    'connection_server_port': 'connection_server_port',
+                    'connection_username': 'connection_username'
+                }]

@@ -32,15 +32,17 @@ class TableauApi:
 
     def batch_update(self, newuser, newpass):
         """Updates login info to all public and per-project datasources"""
-        self.datasources = []
-
-        self.get_public_datasources()
-        self.get_project_datasources()
+        datasources = []
+        public_datasources = self.get_public_datasources()
+        for datasource in public_datasources:
+            datasources.append(datasource)
+        for datasource in self.get_project_datasources():
+            datasources.append(datasource)
 
         logging.info('DATASOURCES IDS')
-        logging.info(list(map(lambda x: x['datasource_id'], self.datasources)))
+        logging.info(list(map(lambda x: x['datasource_id'], datasources)))
 
-        for datasource in self.datasources:
+        for datasource in datasources:
             update_url = \
                '{}/api/{}/sites/{}/datasources/{}/connections/{}'.format(
                     self.serverUrl,
@@ -68,6 +70,7 @@ class TableauApi:
 
     def update_in_tableau_api(self, update_url, payload):
         """Pushes changes update against Tableau's API"""
+
         return requests.put(
             update_url,
             headers=self.get_request_headers(),
@@ -129,7 +132,8 @@ class TableauApi:
         requests.post(url, headers=self.get_request_headers())
 
     def get_public_datasources(self):
-        """TODO: some class/method description"""
+        """Get list of public datasource connections, based on datasources"""
+        datasources = []
         datasources_url = '{}/api/{}/sites/{}/datasources'.format(
             self.serverUrl,
             self.apiVersion,
@@ -156,6 +160,7 @@ class TableauApi:
                     connections_url,
                     headers=self.get_request_headers()
                 )
+
                 if 'connection' in response.json()['connections']:
                     connections = response.json()['connections']['connection']
                     for connection in connections:
@@ -170,7 +175,7 @@ class TableauApi:
                                 )
                             )
 
-                        self.datasources.append({
+                        datasources.append({
                             'datasource_id': source['id'],
                             'datasource_name': source['name'],
                             'datasource_content_url': source['contentUrl'],
@@ -179,11 +184,13 @@ class TableauApi:
                             'connection_server_address':
                                 connection['serverAddress'],
                             'connection_server_port': connection['serverPort'],
-                            'connection_username': connection['userName'],
+                            'connection_username': connection['userName']
                         })
+        return datasources
 
     def get_project_datasources(self):
-        """TODO: some class/method description"""
+        """Get list of public datasource connections, based on workbooks"""
+        datasources = []
         workbooks_url = '{}/api/{}/sites/{}/workbooks?pageSize=1000'.format(
             self.serverUrl,
             self.apiVersion,
@@ -224,7 +231,7 @@ class TableauApi:
                                 connection['userName']
                             )
                         )
-                        self.datasources.append({
+                        datasources.append({
                             'datasource_id': connection['datasource']['id'],
                             'datasource_name':
                                 connection['datasource']['name'],
@@ -234,5 +241,6 @@ class TableauApi:
                             'connection_server_address':
                                 connection['serverAddress'],
                             'connection_server_port': connection['serverPort'],
-                            'connection_username': connection['userName'],
+                            'connection_username': connection['userName']
                         })
+        return datasources
