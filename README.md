@@ -31,7 +31,7 @@ Tableau:
 ## Installation
 
 ```
-pipenv install
+pipenv install --dev
 ```
 
 ## Applies to
